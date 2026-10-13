@@ -102,9 +102,10 @@ authRouter.post('/login', async (req, res) => {
 });
 
 // 3. ME ROUTE
+// 3. ME ROUTE
 authRouter.get('/me', requireAuth, async (req, res) => {
   try {
-    const user: any = await User.findById(req.userId);
+    const user: any = await User.findById((req as any).userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
