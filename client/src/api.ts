@@ -8,14 +8,31 @@ const API_BASE = `${API_ORIGIN}/api`;
 
 export function assetUrl(path: string | null | undefined): string {
   if (!path) return '';
-  if (/^(https?:)?\/\//i.test(path) || /^(blob:|data:)/i.test(path)) return path;
+  if (/^(blob:|data:)/i.test(path)) return path;
 
+  let url: URL;
+  try {
+    url = new URL(path, API_ORIGIN || window.location.origin);
+  } catch {
+    return path;
+  }
+
+  // Uploads may already be stored as absolute URLs (from older deployments),
+  // or with an /api prefix. Route all of those forms to the image API host.
+  const uploadPath = url.pathname.replace(/^\/api(?=\/uploads\/)/, '');
+  if (uploadPath.startsWith('/uploads/')) {
+    url = new URL(uploadPath, API_ORIGIN || url.origin);
+    url.searchParams.set('v', 'restored-20261014');
+    return url.toString();
+  }
+
+  if (/^(https?:)?\/\//i.test(path)) return path;
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const url = `${API_ORIGIN}${normalizedPath}`;
+  const urlString = `${API_ORIGIN}${normalizedPath}`;
   // Force browsers that cached the earlier 404s to request restored uploads again.
   return normalizedPath.startsWith('/uploads/')
-    ? `${url}${url.includes('?') ? '&' : '?'}v=restored-20261014`
-    : url;
+    ? `${urlString}${urlString.includes('?') ? '&' : '?'}v=restored-20261014`
+    : urlString;
 }
 
 export const getToken = () => localStorage.getItem(KEY);
