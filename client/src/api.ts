@@ -11,7 +11,11 @@ export function assetUrl(path: string | null | undefined): string {
   if (/^(https?:)?\/\//i.test(path) || /^(blob:|data:)/i.test(path)) return path;
 
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${API_ORIGIN}${normalizedPath}`;
+  const url = `${API_ORIGIN}${normalizedPath}`;
+  // Force browsers that cached the earlier 404s to request restored uploads again.
+  return normalizedPath.startsWith('/uploads/')
+    ? `${url}${url.includes('?') ? '&' : '?'}v=restored-20261014`
+    : url;
 }
 
 export const getToken = () => localStorage.getItem(KEY);
