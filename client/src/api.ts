@@ -1,9 +1,18 @@
 const KEY = 'ww_token';
 const configuredApiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
 const normalizedApiBase = configuredApiBase.replace(/\/+$/, '');
-const API_BASE = normalizedApiBase.endsWith('/api')
-  ? normalizedApiBase
-  : `${normalizedApiBase}/api`;
+const API_ORIGIN = normalizedApiBase.endsWith('/api')
+  ? normalizedApiBase.slice(0, -4)
+  : normalizedApiBase;
+const API_BASE = `${API_ORIGIN}/api`;
+
+export function assetUrl(path: string | null | undefined): string {
+  if (!path) return '';
+  if (/^(https?:)?\/\//i.test(path) || /^(blob:|data:)/i.test(path)) return path;
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_ORIGIN}${normalizedPath}`;
+}
 
 export const getToken = () => localStorage.getItem(KEY);
 

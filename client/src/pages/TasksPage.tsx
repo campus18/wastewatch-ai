@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { api } from '../api';
+import { api, assetUrl } from '../api';
 import { useAuth } from '../auth';
 import type { Task, TaskStatus, User } from '../types';
 import { Banner, Empty, ErrorBanner, errMsg, Field, fieldErrors, fmtDate, label, SampleTag, Sev, Spinner, StatusBadge, useAsync } from '../ui';
@@ -49,8 +49,8 @@ function VerifyForm({ task, onDone }: { task: Task; onDone: () => void }) {
     <div className="form sub">
       <h4>Verify cleanup</h4>
       <div className="ba">
-        <figure><img src={task.beforePhotoUrl} alt="Before cleanup" loading="lazy" /><figcaption>Before</figcaption></figure>
-        <figure><img src={task.afterPhotoUrl} alt="After cleanup" loading="lazy" /><figcaption>After</figcaption></figure>
+        <figure><img src={assetUrl(task.beforePhotoUrl)} alt="Before cleanup" loading="lazy" /><figcaption>Before</figcaption></figure>
+        <figure><img src={assetUrl(task.afterPhotoUrl)} alt="After cleanup" loading="lazy" /><figcaption>After</figcaption></figure>
       </div>
       {task.cleanupNotes && <p className="muted">Collector notes: {task.cleanupNotes}</p>}
       <Field label="Comment (required to reject)" error={fe.comment}><textarea rows={2} maxLength={500} value={comment} onChange={(e) => setComment(e.target.value)} /></Field>
@@ -112,7 +112,7 @@ function TaskCard({ task, highlight, onChanged }: { task: Task; highlight: boole
       </dl>
       {task.verification?.decision === 'reject' && <Banner kind="err"><strong>Cleanup rejected.</strong> {task.verification.comment}</Banner>}
       {task.status === 'completed' && task.beforePhotoUrl && (
-        <div className="ba"><figure><img src={task.beforePhotoUrl} alt="Before cleanup" loading="lazy" /><figcaption>Before</figcaption></figure><figure><img src={task.afterPhotoUrl} alt="After cleanup" loading="lazy" /><figcaption>After</figcaption></figure></div>
+        <div className="ba"><figure><img src={assetUrl(task.beforePhotoUrl)} alt="Before cleanup" loading="lazy" /><figcaption>Before</figcaption></figure><figure><img src={assetUrl(task.afterPhotoUrl)} alt="After cleanup" loading="lazy" /><figcaption>After</figcaption></figure></div>
       )}
       {start.error != null && <ErrorBanner message={errMsg(start.error)} />}
       <div className="row wrap">

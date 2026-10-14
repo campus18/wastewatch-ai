@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { api, apiImageUrl, ApiError } from '../api';
+import { api, apiImageUrl, ApiError, assetUrl } from '../api';
 import { useAuth } from '../auth';
 import type { Report, ReportDetailData, User } from '../types';
 import { AiPanel, Banner, ErrorBanner, errMsg, Field, fieldErrors, fmtDate, label, SampleTag, Sev, Spinner, StatusBadge, useAsync, useCapabilities } from '../ui';
@@ -70,7 +70,7 @@ export function ReportDetail({ summary, full, onChanged, onClose }: { summary: R
         <h3>{label(r.category)} waste {r.isSample && <SampleTag />}</h3>
         <button className="btn sm" onClick={onClose} aria-label="Close details">Close</button>
       </div>
-      {r.photoUrl ? <img className="photo" src={r.photoUrl} alt="Reported waste" loading="lazy" /> : <div className="noimg">No photo attached{r.isSample ? ' (sample data)' : ''}</div>}
+      {r.photoUrl ? <img className="photo" src={assetUrl(r.photoUrl)} alt="Reported waste" loading="lazy" /> : <div className="noimg">No photo attached{r.isSample ? ' (sample data)' : ''}</div>}
       <div className="row wrap"><Sev level={r.severity} /><StatusBadge status={r.status} /></div>
       {r.description && <p>{r.description}</p>}
       <dl className="kv">
