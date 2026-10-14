@@ -20,11 +20,13 @@ export function assetUrl(path: string | null | undefined): string {
   // Uploads may already be stored as absolute URLs (from older deployments),
   // or with an /api prefix. Route all of those forms to the image API host.
   const uploadPath = url.pathname.replace(/^\/api(?=\/uploads\/)/, '');
-  // The old task points to a missing filename. The provided source photo is
-  // byte-identical to this already-restored upload, so use its working key.
-  const resolvedUploadPath = uploadPath === '/uploads/a734f555afc9c910252300f3c6c37674.jpg'
-    ? '/uploads/5704749c101125d6b230ad491046d34c.jpg'
-    : uploadPath;
+  // Two older task records refer to filenames that are no longer in storage.
+  // Their restored before/after photos are available under these keys.
+  const restoredUploadAliases: Record<string, string> = {
+    '/uploads/a734f555afc9c910252300f3c6c37674.jpg': '/uploads/5704749c101125d6b230ad491046d34c.jpg',
+    '/uploads/149bad0cd709ef0113137e0f8816610e.jpg': '/uploads/c7c5c03113f65393c7256d648d5c2654.jpg',
+  };
+  const resolvedUploadPath = restoredUploadAliases[uploadPath] ?? uploadPath;
   if (resolvedUploadPath.startsWith('/uploads/')) {
     url = new URL(resolvedUploadPath, API_ORIGIN || url.origin);
     url.searchParams.set('v', 'restored-20261014');
