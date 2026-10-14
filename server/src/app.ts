@@ -8,7 +8,7 @@ import multer from 'multer';
 import { config } from './config';
 import { ApiError } from './middleware/auth';
 import { EXT, detectImageType } from './lib/files';
-import { Report, Task, Upload } from './models';
+import { Upload } from './models';
 import { aiCapability } from './services/ai';
 import { imageryCapability } from './services/imagery';
 import { routingCapability } from './services/routing';
@@ -61,6 +61,15 @@ export function createApp() {
 
   // Temporary, token-guarded recovery hook. Disabled unless explicitly enabled in Render.
   const uploadRestoreToken = process.env.UPLOAD_RESTORE_TOKEN;
+  const restorableUploads = new Set([
+    '3f6edbdcf769edd23f087da163aca239.jpg',
+    '5704749c101125d6b230ad491046d34c.jpg',
+    '6780a0827e7ca5818f303fa71c8f6c8d.jpg',
+    '67d75f6277bc2e37adcda52d278006e8.jpg',
+    'c7c5c03113f65393c7256d648d5c2654.jpg',
+    'd38c3d3cd3590529d2b9b96898186adc.jpg',
+    'e0b2ac42ce9a210cca6a9cccb5c7d37b.jpg',
+  ]);
   app.put('/api/internal/restore-upload/:name', express.raw({
     type: ['image/jpeg', 'image/png', 'image/webp'],
     limit: `${config.maxUploadMb}mb`,
@@ -68,13 +77,9 @@ export function createApp() {
     try {
       if (!uploadRestoreToken || req.get('authorization') !== `Bearer ${uploadRestoreToken}`) return res.sendStatus(404);
       const name = req.params.name;
-      if (!/^[a-f0-9]{32}\.(jpg|png|webp)$/.test(name) || !Buffer.isBuffer(req.body)) return res.sendStatus(400);
+      if (!restorableUploads.has(name) || !Buffer.isBuffer(req.body)) return res.sendStatus(400);
       const mime = detectImageType(req.body);
       if (!mime || `${name.split('.').pop()}` !== EXT[mime]) return res.sendStatus(400);
-      const photoPath = `/uploads/${name}`;
-      const referenced = await Report.exists({ photoUrl: photoPath })
-        || await Task.exists({ $or: [{ beforePhotoUrl: photoPath }, { afterPhotoUrl: photoPath }] });
-      if (!referenced) return res.sendStatus(404);
       await Upload.updateOne({ filename: name }, { contentType: mime, data: req.body }, { upsert: true });
       return res.json({ ok: true });
     } catch (error) {
