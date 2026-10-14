@@ -16,8 +16,7 @@ async function request(path: string, opts: { method?: string; body?: unknown; fo
   let body: BodyInit | undefined;
   if (opts.form) body = opts.form;
   else if (opts.body !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(opts.body); }
-  try {
-    return await fetch(`/api${path}`, { method: opts.method ?? 'GET', headers, body });
+  try {return await fetch(`${import.meta.env.VITE_API_URL}/api${path}`, { method: opts.method ?? 'GET', headers, body });
   } catch {
     throw new ApiError(0, 'Cannot reach the server. Check your connection and that the API is running.');
   }
