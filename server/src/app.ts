@@ -7,8 +7,6 @@ import helmet from 'helmet';
 import multer from 'multer';
 import { config } from './config';
 import { ApiError } from './middleware/auth';
-import { EXT, detectImageType } from './lib/files';
-import { Upload } from './models';
 import { aiCapability } from './services/ai';
 import { imageryCapability } from './services/imagery';
 import { routingCapability } from './services/routing';
@@ -58,26 +56,6 @@ export function createApp() {
     }
   });
   app.use('/uploads', express.static(config.uploadDir, { setHeaders: (r) => r.setHeader('X-Content-Type-Options', 'nosniff') }));
-
-  // Temporary, token-guarded recovery hook for the single approved missing photo.
-  const uploadRestoreToken = process.env.UPLOAD_RESTORE_TOKEN;
-  const restorableUpload = 'a734f555afc9c910252300f3c6c37674.jpg';
-  app.put('/api/internal/restore-upload/:name', express.raw({
-    type: ['image/jpeg', 'image/png', 'image/webp'],
-    limit: `${config.maxUploadMb}mb`,
-  }), async (req, res, next) => {
-    try {
-      if (!uploadRestoreToken || req.get('authorization') !== `Bearer ${uploadRestoreToken}`) return res.sendStatus(404);
-      const name = req.params.name;
-      if (name !== restorableUpload || !Buffer.isBuffer(req.body)) return res.sendStatus(400);
-      const mime = detectImageType(req.body);
-      if (!mime || `${name.split('.').pop()}` !== EXT[mime]) return res.sendStatus(400);
-      await Upload.updateOne({ filename: name }, { contentType: mime, data: req.body }, { upsert: true });
-      return res.json({ ok: true });
-    } catch (error) {
-      return next(error);
-    }
-  });
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
   // Booleans/labels only — never keys. Lets the UI label demo/simulated/unavailable states honestly.
