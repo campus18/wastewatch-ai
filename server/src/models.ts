@@ -56,7 +56,15 @@ const notificationSchema = new Schema({
   read: { type: Boolean, default: false },
 }, { timestamps: true });
 
+// Individual images stay below the 16 MB BSON document limit (uploads are capped at 8 MB).
+const uploadSchema = new Schema({
+  filename: { type: String, required: true, unique: true, index: true },
+  contentType: { type: String, required: true, enum: ['image/jpeg', 'image/png', 'image/webp'] },
+  data: { type: Buffer, required: true },
+}, { timestamps: true });
+
 export const User: Model<any> = mongoose.model('User', userSchema);
 export const Report: Model<any> = mongoose.model('Report', reportSchema);
 export const Task: Model<any> = mongoose.model('Task', taskSchema);
 export const Notification: Model<any> = mongoose.model('Notification', notificationSchema);
+export const Upload: Model<any> = mongoose.model('Upload', uploadSchema);

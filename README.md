@@ -38,7 +38,7 @@ AI note: Vision returns generic image *labels*, not a purpose-built waste detect
 - **Auth:** JWT (7 days) + bcrypt. The user is re-loaded from the DB on every request, so role changes apply immediately. Public registration only creates citizens.
 - **Authorization:** one permission matrix (`server/src/lib/permissions.ts`) enforced by middleware; collectors can only touch their own tasks; citizens only see their own reports (the map feed omits reporter and AI details).
 - **Workflow:** report → supervisor assigns task (deadline) → collector starts → uploads before+after → supervisor approves (report resolved) or rejects with a comment (back to in-progress). State changes use atomic conditional updates to avoid double-processing.
-- **Uploads:** memory → magic-byte check (JPEG/PNG/WebP) → random filename on disk (`UPLOAD_DIR`). Uploaded files are served at `/uploads/<random>` without auth (unguessable names); put them behind object storage with signed URLs for production.
+- **Uploads:** memory → magic-byte check (JPEG/PNG/WebP) → random filename stored as a separate MongoDB document so uploads survive Render restarts. Uploaded files are served at `/uploads/<random>` without auth (unguessable names); keep per-file limits below MongoDB's 16 MB document limit or move to object storage for larger media.
 - **Analytics:** computed server-side from stored records only; empty data yields zeros/empty states.
 - **Validation:** hand-written, dependency-free validators (`server/src/lib/validators.ts`); field errors are shown inline.
 

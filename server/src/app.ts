@@ -10,6 +10,7 @@ import { ApiError } from './middleware/auth';
 import { aiCapability } from './services/ai';
 import { imageryCapability } from './services/imagery';
 import { routingCapability } from './services/routing';
+import { readImage } from './services/storage';
 import { authRouter } from './routes/auth';
 import { reportsRouter } from './routes/reports';
 import { tasksRouter } from './routes/tasks';
@@ -42,6 +43,18 @@ export function createApp() {
   }));
   app.use(cors({ origin: config.clientOrigin }));
   app.use(express.json({ limit: '100kb' }));
+  app.get('/uploads/:name', async (req, res, next) => {
+    try {
+      const image = await readImage(req.params.name);
+      if (!image) return res.sendStatus(404);
+      res.setHeader('Content-Type', image.contentType);
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      return res.send(image.data);
+    } catch (error) {
+      return next(error);
+    }
+  });
   app.use('/uploads', express.static(config.uploadDir, { setHeaders: (r) => r.setHeader('X-Content-Type-Options', 'nosniff') }));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
