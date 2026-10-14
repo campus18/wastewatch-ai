@@ -103,8 +103,20 @@ function Guard({ roles, children }: { roles: Role[]; children: ReactNode }) {
 }
 
 export default function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, restoreError, retrySession, logout } = useAuth();
   if (loading) return <Spinner text="Signing you in…" />;
+  if (!user && restoreError) {
+    return (
+      <div className="state empty" style={{ minHeight: '100vh', justifyContent: 'center', alignItems: 'center', textAlign: 'center', boxSizing: 'border-box' }}>
+        <strong>Couldn’t restore your session</strong>
+        <span>{restoreError}</span>
+        <div style={{ display: 'flex', gap: '.6rem', marginTop: '.5rem' }}>
+          <button className="btn primary" onClick={retrySession}>Try again</button>
+          <button className="btn ghost" onClick={logout}>Sign in instead</button>
+        </div>
+      </div>
+    );
+  }
   if (!user) return <Login />;
   const g = (path: string, roles: Role[], el: ReactNode) => <Route path={path} element={<Guard roles={roles}>{el}</Guard>} />;
   return (
