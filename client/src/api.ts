@@ -1,0 +1,139 @@
+const KEY = 'ww_token';
+const configuredApiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
+const normalizedApiBase = configuredApiBase.replace(/\/+$/, '');
+const API_ORIGIN = normalizedApiBase.endsWith('/api')
+  ? normalizedApiBase.slice(0, -4)
+  : normalizedApiBase;
+const API_BASE = `${API_ORIGIN}/api`;
+
+export function assetUrl(path: string | null | undefined): string {
+  if (!path) return '';
+  if (/^(blob:|data:)/i.test(path)) return path;
+
+  let url: URL;
+  try {
+    url = new URL(path, API_ORIGIN || window.location.origin);
+  } catch {
+    return path;
+  }
+
+  // Uploads may already be stored as absolute URLs (from older deployments),
+  // or with an /api prefix. Route all of those forms to the image API host.
+  const uploadPath = url.pathname.replace(/^\/api(?=\/uploads\/)/, '');
+  // Two older task records refer to filenames that are no longer in storage.
+  // Their restored before/after photos are available under these keys.
+  const restoredUploadAliases: Record<string, string> = {
+    '/uploads/a734f555afc9c910252300f3c6c37674.jpg': '/uploads/5704749c101125d6b230ad491046d34c.jpg',
+    '/uploads/149bad0cd709ef0113137e0f8816610e.jpg': '/uploads/c7c5c03113f65393c7256d648d5c2654.jpg',
+  };
+  const resolvedUploadPath = restoredUploadAliases[uploadPath] ?? uploadPath;
+  if (resolvedUploadPath.startsWith('/uploads/')) {
+    url = new URL(resolvedUploadPath, API_ORIGIN || url.origin);
+    url.searchParams.set('v', 'restored-20261014');
+    return url.toString();
+  }
+
+  if (/^(https?:)?\/\//i.test(path)) return path;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const urlString = `${API_ORIGIN}${normalizedPath}`;
+  // Force browsers that cached the earlier 404s to request restored uploads again.
+  return normalizedPath.startsWith('/uploads/')
+    ? `${urlString}${urlString.includes('?') ? '&' : '?'}v=restored-20261014`
+    : urlString;
+}
+
+export const getToken = () => localStorage.getItem(KEY);
+
+export const setToken = (token: string | null) => {
+  if (token) {
+    localStorage.setItem(KEY, token);
+  } else {
+    localStorage.removeItem(KEY);
+  }
+};
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+    public details?: Record<string, string>
+  ) {
+    super(message);
+  }
+}
+
+let onUnauthorized: (() => void) | null = null;
+
+export const setUnauthorizedHandler = (fn: (() => void) | null) => {
+  onUnauthorized = fn;
+};
+
+async function request(
+  path: string,
+  opts: { method?: string; body?: unknown; form?: FormData }
+): Promise<Response> {
+  const headers: Record<string, string> = {};
+  const token = getToken();
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  let body: BodyInit | undefined;
+  if (opts.form) {
+    body = opts.form;
+  } else if (opts.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    body = JSON.stringify(opts.body);
+  }
+
+  try {
+    return await fetch(`${API_BASE}${path}`, {
+      method: opts.method ?? 'GET',
+      headers,
+      body,
+    });
+  } catch {
+    throw new ApiError(
+      0,
+      'Cannot reach the server. Check your connection and that the API is running.'
+    );
+  }
+}
+
+export async function api<T>(
+  path: string,
+  opts: { method?: string; body?: unknown; form?: FormData } = {}
+): Promise<T> {
+  const res = await request(path, opts);
+  const data = await res.json().catch(() => null);
+
+  if (res.status === 401 && getToken() && !path.startsWith('/auth/')) {
+    onUnauthorized?.();
+  }
+
+  if (!res.ok) {
+    throw new ApiError(
+      res.status,
+      data?.error ?? `Request failed (${res.status})`,
+      data?.details
+    );
+  }
+
+  return data as T;
+}
+
+/** Fetch an authenticated image as an object URL. */
+export async function apiImageUrl(path: string): Promise<string> {
+  const res = await request(path, {});
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new ApiError(
+      res.status,
+      data?.error ?? `Request failed (${res.status})`
+    );
+  }
+
+  return URL.createObjectURL(await res.blob());
+}
